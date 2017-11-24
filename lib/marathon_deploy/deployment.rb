@@ -8,13 +8,15 @@ module MarathonDeploy
 
   WAIT_FOR_DEPLOYMENT_TIMEOUT = MarathonDefaults::WAIT_FOR_DEPLOYMENT_TIMEOUT
   DEPLOYMENT_RECHECK_INTERVAL = MarathonDefaults::DEPLOYMENT_RECHECK_INTERVAL
-  DEPLOYMENT_TIMEOUT = MarathonDefaults::DEPLOYMENT_TIMEOUT
   HEALTHY_WAIT_TIMEOUT = MarathonDefaults::HEALTHY_WAIT_TIMEOUT
   HEALTHY_WAIT_RECHECK_INTERVAL = MarathonDefaults::HEALTHY_WAIT_RECHECK_INTERVAL
 
+  @deployment_timeout = MarathonDefaults::DEPLOYMENT_TIMEOUT
+
   attr_reader :url, :application, :deploymentId
 
-  def initialize(url, application, deployment_timeout = DEPLOYMENT_TIMEOUT)
+  def initialize(url, application, deployment_timeout = MarathonDefaults::DEPLOYMENT_TIMEOUT)
+    @deployment_timeout = Integer(deployment_timeout)
     raise ArgumentError, "second argument to deployment object must be an Application", caller unless (!application.nil? && application.class == Application)
     raise Error::BadURLError, "invalid url => #{url}", caller if (!HttpUtil.valid_url(url))
     @url = HttpUtil.clean_url(url)
@@ -22,7 +24,7 @@ module MarathonDeploy
   end
 
   def timeout
-    return DEPLOYMENT_TIMEOUT
+    return @deployment_timeout
   end
 
   def healthcheck_timeout
@@ -52,7 +54,7 @@ module MarathonDeploy
   def wait_for_deployment_id(message = "Deployment with deploymentId #{@deploymentId} in progress")
       startTime = Time.now
       deployment_seen = false
-      Timeout::timeout(DEPLOYMENT_TIMEOUT) do
+      Timeout::timeout(@deployment_timeout) do
         while running_for_deployment_id?
           deployment_seen = true
           #response = list_all
@@ -75,7 +77,7 @@ module MarathonDeploy
 
   def wait_for_application(message = "Deployment of application #{@application.id} in progress")
       deployment_seen = false
-      Timeout::timeout(DEPLOYMENT_TIMEOUT) do
+      Timeout::timeout(@deployment_timeout) do
         while running_for_application_id?
           deployment_seen = true
           #response = list_all
